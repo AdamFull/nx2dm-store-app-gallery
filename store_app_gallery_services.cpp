@@ -58,7 +58,7 @@ bool HuaweiCore::is_owned(const nx::string_view dlc_id) const {
   return false;
 }
 
-void HuaweiCore::refresh_ownership() {
+void HuaweiCore::refresh_ownership(const nx::string_view) {
   if (!m_platform.ready())
     return;
   const nx::android::JniScope env(m_platform.vm());
