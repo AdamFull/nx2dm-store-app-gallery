@@ -1,0 +1,11 @@
+{
+  "name": "store_app_gallery",
+  "displayName": "Huawei App Gallery",
+  "version": "0.1.0",
+  "author": "AdamFull",
+  "description": "Huawei App Gallery (HMS IAP Kit) storefront backend.",
+  "license": null,
+  "created": "2026-09-12",
+  "repository": null,
+  "revision": null
+}
