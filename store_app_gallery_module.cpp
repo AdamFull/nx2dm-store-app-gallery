@@ -8,6 +8,7 @@
 #include "app/module_system/module_context.h"
 
 #include "core/foundation/diagnostics/log.h"
+#include "core/foundation/threading/thread_pool.h"
 
 namespace nxm::store_app_gallery {
 namespace {
@@ -45,7 +46,8 @@ public:
            registrar.provide(store::kIapService, PROVIDED_SERVICES[1].version, iap);
   }
 
-  bool on_attach(nxe::ModuleContext &) override {
+  bool on_attach(nxe::ModuleContext &ctx) override {
+    m_platform.set_threads(&ctx.threads());
     // No pump system registered here, unlike the desktop backends - every
     // HMS IAP call resolves through the Java shim's own callbacks,
     // dispatched by the Android runtime itself (see
@@ -54,7 +56,9 @@ public:
     // Kit takes no developer-supplied credentials at runtime beyond
     // agconnect-services.json, a build-time artifact consumed entirely by
     // the AGConnect Gradle plugin before this module's C++ ever runs.
-    if (m_platform.initialize())
+    bool connected = false;
+    ctx.threads().run_on_main([&] { connected = m_platform.initialize(); });
+    if (connected)
       nx::logi(log_store_app_gallery, "attached, checking HUAWEI IAP environment");
     else
       nx::logi(log_store_app_gallery, "no Android activity available; staying idle");

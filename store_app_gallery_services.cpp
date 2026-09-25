@@ -61,10 +61,14 @@ bool HuaweiCore::is_owned(const nx::string_view dlc_id) const {
 void HuaweiCore::refresh_ownership(const nx::string_view) {
   if (!m_platform.ready())
     return;
-  const nx::android::JniScope env(m_platform.vm());
-  if (!env)
-    return;
-  call_shim_static_void(env.get(), "obtainOwnedPurchases", "()V", nullptr);
+  nx::android::run_java(m_platform.threads(), m_platform.vm(),
+                        [&](const nx::android::JniScope &env) {
+                          if (!env)
+                            return;
+                          call_shim_static_void(env.get(),
+                                                "obtainOwnedPurchases", "()V",
+                                                nullptr);
+                        });
 }
 
 void HuaweiCore::on_owned_purchases_queried(const jboolean success,
@@ -99,39 +103,47 @@ HuaweiIap::~HuaweiIap() {
 bool HuaweiIap::purchase(const nx::string_view product_id) {
   if (!m_platform.ready())
     return false;
-  const nx::android::JniScope env(m_platform.vm());
-  if (!env)
-    return false;
-  const jstring id = nx::android::to_jstring(env.get(), product_id);
-  if (id == nullptr)
-    return false;
+  return nx::android::run_java(
+      m_platform.threads(), m_platform.vm(),
+      [&](const nx::android::JniScope &env) -> bool {
+        if (!env)
+          return false;
+        const jstring id = nx::android::to_jstring(env.get(), product_id);
+        if (id == nullptr)
+          return false;
 
-  m_purchase_pending = true;
-  m_purchase_error = nx::string{};
+        m_purchase_pending = true;
+        m_purchase_error = nx::string{};
 
-  jvalue args[2];
-  args[0].l = m_platform.activity();
-  args[1].l = id;
-  call_shim_static_void(env.get(), "purchase",
-                        "(Landroid/app/Activity;Ljava/lang/String;)V", args);
-  env->DeleteLocalRef(id);
-  return true;
+        jvalue args[2];
+        args[0].l = m_platform.activity();
+        args[1].l = id;
+        call_shim_static_void(env.get(), "purchase",
+                              "(Landroid/app/Activity;Ljava/lang/String;)V",
+                              args);
+        env->DeleteLocalRef(id);
+        return true;
+      });
 }
 
 void HuaweiIap::refresh_products(const nx::vector<nx::string> &product_ids) {
   if (!m_platform.ready())
     return;
-  const nx::android::JniScope env(m_platform.vm());
-  if (!env)
-    return;
-  const jobjectArray ids = nx::android::to_jstring_array(env.get(), product_ids);
-  if (ids == nullptr)
-    return;
-  jvalue args[1];
-  args[0].l = ids;
-  call_shim_static_void(env.get(), "obtainProductDetails", "([Ljava/lang/String;)V",
-                        args);
-  env->DeleteLocalRef(ids);
+  nx::android::run_java(
+      m_platform.threads(), m_platform.vm(),
+      [&](const nx::android::JniScope &env) {
+        if (!env)
+          return;
+        const jobjectArray ids =
+            nx::android::to_jstring_array(env.get(), product_ids);
+        if (ids == nullptr)
+          return;
+        jvalue args[1];
+        args[0].l = ids;
+        call_shim_static_void(env.get(), "obtainProductDetails",
+                              "([Ljava/lang/String;)V", args);
+        env->DeleteLocalRef(ids);
+      });
 }
 
 void HuaweiIap::on_product_details_response(

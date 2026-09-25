@@ -5,6 +5,10 @@
 
 #include <jni.h>
 
+namespace nx {
+class thread_pool;
+}
+
 namespace nxm::store_app_gallery {
 
 /// Looks up `com.nx2d.runtime.NxHuaweiIap` - shared by the platform and both
@@ -53,6 +57,9 @@ public:
   [[nodiscard]] bool ready() const noexcept { return m_ready; }
 
   [[nodiscard]] JavaVM *vm() const noexcept { return m_vm; }
+  /// The pool whose main thread runs the Java calls made from its jobs.
+  void set_threads(nx::thread_pool *threads) noexcept { m_threads = threads; }
+  [[nodiscard]] nx::thread_pool *threads() const noexcept { return m_threads; }
   /// A global ref on the Android `Activity` SDL created this process with -
   /// HMS IAP needs one throughout (unlike Play Billing, which only needs an
   /// `Activity` for `purchase()`): `isEnvReady()`'s and
@@ -69,6 +76,7 @@ private:
   void on_env_ready(jboolean ready);
 
   JavaVM *m_vm = nullptr;
+  nx::thread_pool *m_threads = nullptr;
   jobject m_activity = nullptr;
   bool m_ready = false;
 

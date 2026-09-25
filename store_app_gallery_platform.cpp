@@ -68,25 +68,26 @@ bool HuaweiPlatform::initialize() {
 void HuaweiPlatform::shutdown() {
   if (m_vm == nullptr)
     return;
-  const nx::android::JniScope env(m_vm);
-  if (env && m_activity != nullptr) {
-    const jclass shim = find_iap_shim_class(env.get());
-    if (shim != nullptr) {
-      const jmethodID disconnect =
-          nx::android::static_method(env.get(), shim, "disconnect", "()V");
-      if (disconnect != nullptr)
-        env->CallStaticVoidMethod(shim, disconnect);
-      if (env->ExceptionCheck())
-        env->ExceptionClear();
-      env->DeleteLocalRef(shim);
+  nx::android::run_java(m_threads, m_vm, [&](const nx::android::JniScope &env) {
+    if (env && m_activity != nullptr) {
+      const jclass shim = find_iap_shim_class(env.get());
+      if (shim != nullptr) {
+        const jmethodID disconnect =
+            nx::android::static_method(env.get(), shim, "disconnect", "()V");
+        if (disconnect != nullptr)
+          env->CallStaticVoidMethod(shim, disconnect);
+        if (env->ExceptionCheck())
+          env->ExceptionClear();
+        env->DeleteLocalRef(shim);
+      }
+      env->DeleteGlobalRef(m_activity);
     }
-    env->DeleteGlobalRef(m_activity);
-  }
-  m_activity = nullptr;
-  m_vm = nullptr;
-  m_ready = false;
-  if (s_instance == this)
-    s_instance = nullptr;
+    m_activity = nullptr;
+    m_vm = nullptr;
+    m_ready = false;
+    if (s_instance == this)
+      s_instance = nullptr;
+  });
 }
 
 void HuaweiPlatform::on_env_ready(const jboolean ready) {
